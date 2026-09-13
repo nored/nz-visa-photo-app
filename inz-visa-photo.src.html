@@ -1,0 +1,1862 @@
+<title>INZ Photo Capture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #EEF1F2;
+    --surface: #FFFFFF;
+    --surface-2: #F7F8F9;
+    --ink: #14181C;
+    --ink-muted: #5A6470;
+    --ink-faint: #8A929B;
+    --line: #D6DBDF;
+    --line-strong: #B4BCC3;
+    --accent: #1F5F5B;
+    --accent-ink: #FFFFFF;
+    --accent-tint: #E4EEEC;
+    --ok: #2F7A3E;
+    --ok-tint: #E4F0E6;
+    --warn: #B0480E;
+    --warn-tint: #FAECDF;
+    --bad: #B02A2A;
+    --bad-tint: #F7E1E1;
+    --focus: #3D8580;
+    --canvas-bg: #101418;
+    --shadow: 0 1px 2px rgba(20, 24, 28, 0.06), 0 4px 12px rgba(20, 24, 28, 0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0F1315;
+      --surface: #171B1E;
+      --surface-2: #1E2327;
+      --ink: #E8ECEE;
+      --ink-muted: #98A0A7;
+      --ink-faint: #6B747C;
+      --line: #2A3035;
+      --line-strong: #3A4148;
+      --accent: #6BBFB8;
+      --accent-ink: #0F1315;
+      --accent-tint: #1C2E2D;
+      --ok: #7AC58A;
+      --ok-tint: #1B2A20;
+      --warn: #E39865;
+      --warn-tint: #2E211A;
+      --bad: #E38080;
+      --bad-tint: #2E1A1A;
+      --focus: #8FD3CD;
+      --canvas-bg: #05080A;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0F1315;
+    --surface: #171B1E;
+    --surface-2: #1E2327;
+    --ink: #E8ECEE;
+    --ink-muted: #98A0A7;
+    --ink-faint: #6B747C;
+    --line: #2A3035;
+    --line-strong: #3A4148;
+    --accent: #6BBFB8;
+    --accent-ink: #0F1315;
+    --accent-tint: #1C2E2D;
+    --ok: #7AC58A;
+    --ok-tint: #1B2A20;
+    --warn: #E39865;
+    --warn-tint: #2E211A;
+    --bad: #E38080;
+    --bad-tint: #2E1A1A;
+    --focus: #8FD3CD;
+    --canvas-bg: #05080A;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  [hidden] { display: none !important; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 24px 20px 40px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
+
+  .page {
+    max-width: 1240px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  header .sub { color: var(--ink-muted); font-size: 13px; }
+  header .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px; background: var(--accent-tint); color: var(--accent);
+    border-radius: 3px; font-size: 11px; font-weight: 500;
+    letter-spacing: 0.04em; text-transform: uppercase;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  header .badge::before {
+    content: ""; width: 6px; height: 6px; background: currentColor; border-radius: 50%;
+  }
+
+  .stage-msg {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; padding: 40px 20px; color: rgba(255,255,255,0.85); text-align: center;
+    background: var(--canvas-bg);
+  }
+  .stage-msg .stage-msg-title { font-size: 15px; font-weight: 600; }
+  .stage-msg .stage-msg-sub {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    color: rgba(255,255,255,0.55); font-variant-numeric: tabular-nums;
+  }
+  .load-bar-wrap {
+    width: 320px; max-width: 90vw; height: 6px;
+    background: rgba(255,255,255,0.10);
+    border-radius: 3px; overflow: hidden;
+    margin-top: 2px;
+  }
+  .load-bar {
+    height: 100%; width: 0%;
+    background: rgba(140, 220, 210, 0.85);
+    transition: width 0.15s ease;
+  }
+  .load-steps {
+    display: flex; gap: 6px;
+    font-family: "IBM Plex Mono", monospace; font-size: 10px;
+    color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .load-steps span.done { color: rgba(140, 220, 210, 0.85); }
+  .load-steps span.now { color: rgba(255,255,255,0.9); }
+  .stage-msg.error .load-bar { background: #ff9494; }
+  .stage-msg.error .stage-msg-title { color: #ff9494; }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+  }
+
+  .cam-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .cam-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .cam-toolbar select {
+    font: inherit; font-size: 13px; padding: 6px 8px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line-strong); border-radius: 4px;
+    max-width: 240px;
+  }
+  .btn {
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    padding: 7px 12px; border-radius: 4px;
+    border: 1px solid var(--line-strong);
+    background: var(--surface); color: var(--ink);
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn:hover:not(:disabled) { background: var(--surface-2); }
+  .btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    padding: 10px 18px; font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) { filter: brightness(0.92); }
+  .btn-primary:disabled { background: var(--line-strong); border-color: var(--line-strong); color: var(--surface); opacity: 1; }
+
+  .stage {
+    position: relative;
+    background: var(--canvas-bg);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 420px;
+    padding: 16px;
+  }
+  .stage .vid-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    max-height: 72vh;
+    line-height: 0;
+  }
+  .stage video, .stage canvas.frozen {
+    display: block;
+    max-width: 100%;
+    max-height: 72vh;
+    background: #000;
+    /* No CSS filters — we don't modify pixels */
+  }
+  .stage canvas.overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    width: 100%; height: 100%;
+  }
+  .stage .no-cam {
+    color: var(--ink-faint); text-align: center; padding: 60px 20px; font-size: 13px;
+  }
+  .stage .no-cam strong { display: block; color: var(--line-strong); font-size: 15px; margin-bottom: 6px; font-weight: 500; }
+
+  .cam-footer {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; border-top: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .cam-footer .spacer { flex: 1; }
+  .hint {
+    font-size: 12px; color: var(--ink-muted);
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .kbd {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px; font-weight: 500;
+    background: var(--surface-2); border: 1px solid var(--line-strong);
+    padding: 2px 8px; border-radius: 3px; color: var(--ink);
+  }
+
+  aside { display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-muted); margin: 0 0 12px;
+  }
+  .checks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .check {
+    display: grid; grid-template-columns: 14px 1fr auto; gap: 10px;
+    align-items: center; font-size: 13px;
+    padding: 7px 10px; border-radius: 4px;
+    background: var(--surface-2);
+  }
+  .check .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--line-strong);
+  }
+  .check.ok { background: var(--ok-tint); }
+  .check.ok .dot { background: var(--ok); }
+  .check.warn { background: var(--warn-tint); }
+  .check.warn .dot { background: var(--warn); }
+  .check.bad { background: var(--bad-tint); }
+  .check.bad .dot { background: var(--bad); }
+  .check .label { color: var(--ink); }
+  .check .value { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+
+  .readout {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px;
+    align-items: baseline; font-size: 13px;
+  }
+  .readout dt { color: var(--ink-muted); }
+  .readout dd {
+    margin: 0; font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums; text-align: right;
+    color: var(--ink);
+  }
+  .readout dd.na { color: var(--ink-faint); }
+
+  .status {
+    padding: 10px 12px; border-radius: 4px; font-size: 13px; line-height: 1.4;
+    display: none;
+  }
+  .status.show { display: block; }
+  .status.bad { background: var(--bad-tint); color: var(--bad); border: 1px solid var(--bad); }
+  .status.ok { background: var(--ok-tint); color: var(--ok); border: 1px solid var(--ok); }
+  .status.info { background: var(--accent-tint); color: var(--accent); border: 1px solid var(--accent); }
+
+  .notes { font-size: 12px; color: var(--ink-muted); line-height: 1.55; }
+  .notes p { margin: 0 0 8px; }
+  .notes p:last-child { margin: 0; }
+  .notes strong { color: var(--ink); font-weight: 500; }
+  .notes .head {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink-muted); margin-bottom: 8px;
+  }
+
+  .capture-bar {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 18px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+  }
+  .capture-bar .cb-status { flex: 1; min-width: 200px; }
+  .capture-bar .cb-heading {
+    font-size: 15px; font-weight: 600; color: var(--ink); line-height: 1.2;
+  }
+  .capture-bar .cb-sub {
+    font-size: 12px; color: var(--ink-muted); margin-top: 2px;
+  }
+  .capture-bar.blocked .cb-heading { color: var(--bad); }
+  .capture-bar.ready .cb-heading { color: var(--ok); }
+  .btn-big {
+    font-size: 15px; font-weight: 600; padding: 12px 22px; min-width: 140px;
+    justify-content: center;
+  }
+  .stage.ready { box-shadow: inset 0 0 0 4px var(--ok); }
+
+  /* Capture flash */
+  .stage.flash::after {
+    content: ""; position: absolute; inset: 0;
+    background: white; opacity: 0.65;
+    pointer-events: none;
+    animation: flash-out 0.35s ease-out forwards;
+  }
+  @keyframes flash-out { to { opacity: 0; } }
+
+  /* Gallery */
+  .gallery {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    min-height: 64px; align-items: center;
+  }
+  .gallery:empty::before {
+    content: "No shots yet. Press SPACE (or Capture) to take one.";
+    color: var(--ink-faint); font-size: 12px;
+    font-family: "IBM Plex Mono", monospace;
+  }
+  .thumb {
+    position: relative;
+    width: 66px; height: 88px;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px; overflow: hidden;
+    background: #000;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .thumb:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .thumb:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .thumb canvas { width: 100%; height: 100%; display: block; }
+  .thumb-remove {
+    position: absolute; top: 2px; right: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(0,0,0,0.65); color: white;
+    border: none; cursor: pointer;
+    font-size: 12px; line-height: 14px; padding: 0;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .thumb:hover .thumb-remove, .thumb:focus-within .thumb-remove { opacity: 1; }
+  .thumb-remove:hover { background: var(--bad); }
+  .thumb-idx {
+    position: absolute; bottom: 2px; left: 4px;
+    color: rgba(255,255,255,0.7); font-size: 10px;
+    font-family: "IBM Plex Mono", monospace;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+
+  /* Preview modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(4, 8, 10, 0.72);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .modal-panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+    display: flex; flex-direction: column;
+    max-width: 540px; width: 100%;
+    max-height: 92vh;
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-header h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; font-size: 22px; line-height: 1;
+    color: var(--ink-muted); cursor: pointer; padding: 4px 8px; border-radius: 4px;
+  }
+  .modal-close:hover { background: var(--surface-2); color: var(--ink); }
+  .modal-body {
+    padding: 20px; display: flex; flex-direction: column;
+    align-items: center; gap: 12px; overflow: auto;
+    background: var(--surface-2);
+  }
+  .modal-body canvas {
+    display: block;
+    max-width: 100%; max-height: 62vh;
+    background: #000;
+    border: 1px solid var(--line-strong);
+  }
+  .modal-meta {
+    font-family: "IBM Plex Mono", monospace; font-size: 12px;
+    color: var(--ink-muted); text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .modal-status {
+    font-size: 12px; text-align: center; min-height: 16px;
+  }
+  .modal-status.bad { color: var(--bad); }
+  .modal-status.info { color: var(--ink-muted); }
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+  }
+</style>
+
+<div class="page">
+  <header>
+    <div>
+      <h1>INZ Photo Capture</h1>
+      <div class="sub">Camera → 3:4 crop → JPEG. Geometry only, no pixel edits.</div>
+    </div>
+    <span class="badge">3:4 · 720–2250 px · 512 KB–3.14 MB · sRGB</span>
+  </header>
+
+  <main id="app">
+    <section class="cam-panel">
+      <div class="cam-toolbar">
+        <select id="camSelect" aria-label="Camera device" disabled><option>Detecting cameras…</option></select>
+        <button class="btn" type="button" id="startBtn" disabled>Restart camera</button>
+        <button class="btn" type="button" id="mirrorBtn" title="Mirror the preview only. Saved photo is never mirrored.">Mirror preview</button>
+        <span class="mono" id="camInfo" style="margin-left:auto; color:var(--ink-muted); font-size:12px;"></span>
+      </div>
+      <div class="stage" id="stage">
+        <div class="stage-msg" id="stageMsg">
+          <div class="stage-msg-title" id="loadTitle">Setting up</div>
+          <div class="load-bar-wrap"><div class="load-bar" id="loadBar"></div></div>
+          <div class="stage-msg-sub" id="loadStep">Starting…</div>
+          <div class="load-steps" id="loadSteps">
+            <span id="stepDownload">1 · Download</span>
+            <span id="stepInit">2 · Initialise</span>
+            <span id="stepDetect">3 · Detectors</span>
+            <span id="stepCam">4 · Camera</span>
+          </div>
+        </div>
+        <div class="vid-wrap" id="vidWrap" hidden>
+          <video id="video" playsinline muted autoplay></video>
+          <canvas class="overlay" id="overlay"></canvas>
+        </div>
+      </div>
+      <div class="capture-bar" id="captureBar">
+        <div class="cb-status">
+          <div class="cb-heading" id="mainHint">Waiting for camera…</div>
+          <div class="cb-sub">The photo is only saved when every check on the right is green.</div>
+        </div>
+        <button class="btn-primary btn-big" type="button" id="captureBtn" disabled>Capture</button>
+      </div>
+      <div class="gallery" id="gallery"></div>
+      <div class="cam-footer">
+        <span class="hint"><span class="kbd">Space</span> capture · click a thumbnail to open · <span class="kbd">Esc</span> close</span>
+        <span class="spacer"></span>
+        <span class="hint mono" id="fpsInfo"></span>
+      </div>
+    </section>
+
+    <aside>
+      <div class="card">
+        <h2>Framing</h2>
+        <ul class="checks">
+          <li class="check" id="chkFace"><span class="dot"></span><span class="label">Exactly one face</span><span class="value" id="vFace">—</span></li>
+          <li class="check" id="chkFaceSize"><span class="dot"></span><span class="label">Head 70–80 % of frame</span><span class="value" id="vFaceSize">—</span></li>
+          <li class="check" id="chkFaceCenter"><span class="dot"></span><span class="label">Face centred</span><span class="value" id="vFaceCenter">—</span></li>
+          <li class="check" id="chkEyes"><span class="dot"></span><span class="label">Both eyes visible</span><span class="value" id="vEyes">—</span></li>
+          <li class="check" id="chkEyeLine"><span class="dot"></span><span class="label">Eye line 55–65 % up</span><span class="value" id="vEyeLine">—</span></li>
+          <li class="check" id="chkTilt"><span class="dot"></span><span class="label">Head level (≤ 5°)</span><span class="value" id="vTilt">—</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Background</h2>
+        <ul class="checks">
+          <li class="check" id="chkBgUniform"><span class="dot"></span><span class="label">Uniform colour</span><span class="value" id="vBgUniform">—</span></li>
+          <li class="check" id="chkBgLight"><span class="dot"></span><span class="label">Light neutral tone</span><span class="value" id="vBgLight">—</span></li>
+          <li class="check" id="chkBgEdges"><span class="dot"></span><span class="label">No visible patterns</span><span class="value" id="vBgEdges">—</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Image quality</h2>
+        <ul class="checks">
+          <li class="check" id="chkSharp"><span class="dot"></span><span class="label">Sharp (in focus)</span><span class="value" id="vSharp">—</span></li>
+          <li class="check" id="chkExposure"><span class="dot"></span><span class="label">Face well-exposed</span><span class="value" id="vExposure">—</span></li>
+          <li class="check" id="chkResolution"><span class="dot"></span><span class="label">Crop ≥ 720 px wide</span><span class="value" id="vResolution">—</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Output</h2>
+        <dl class="readout">
+          <dt>Video source</dt><dd id="rSrc" class="na">—</dd>
+          <dt>Crop (video px)</dt><dd id="rCrop" class="na">—</dd>
+          <dt>Output</dt><dd id="rOut" class="na">—</dd>
+          <dt>Estimated size</dt><dd id="rSize" class="na">—</dd>
+        </dl>
+      </div>
+
+      <div id="status" class="status"></div>
+
+      <div class="card notes">
+        <div class="head">Chain of custody</div>
+        <p>Pipeline: your camera → 3:4 crop → JPEG encode. No brightness, contrast, saturation, sharpness, background replacement, or skin-smoothing changes at any step.</p>
+        <p><strong>Auto-filter warning.</strong> If your phone or laptop applies beautification or filters automatically, turn them off before you start — INZ rejects filtered photos.</p>
+        <p><strong>Verify manually.</strong> Machine checks help but do not replace the INZ checklist: neutral expression, mouth closed, eyes open, hair not covering ears, no tinted glasses, no head coverings unless religious/medical.</p>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="previewModal" hidden>
+  <div class="modal-panel" role="dialog" aria-labelledby="previewTitle" aria-modal="true">
+    <div class="modal-header">
+      <h2 id="previewTitle">Preview</h2>
+      <button class="modal-close" type="button" id="modalCloseBtn" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body">
+      <canvas id="previewCanvas" width="400" height="533"></canvas>
+      <div class="modal-meta" id="previewMeta">—</div>
+      <div class="modal-status" id="previewStatus"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="modalDiscardBtn">Discard</button>
+      <button class="btn" type="button" id="modalCloseBtn2">Close</button>
+      <button class="btn btn-primary" type="button" id="modalSaveBtn">Save photo</button>
+    </div>
+  </div>
+</div>
+
+<script id="cascade-face" type="text/plain">___BASE64_FACE___</script>
+<script id="cascade-eye" type="text/plain">___BASE64_EYE___</script>
+
+<script>
+(() => {
+  "use strict";
+
+  // ===== Constants =====
+  const CFG = {
+    MIN_W: 720,
+    MAX_W: 2250,
+    MIN_BYTES: 512 * 1024,
+    MAX_BYTES: Math.floor(3.14 * 1024 * 1024),
+    ASPECT: 3 / 4,                  // width / height
+    FACE_HEIGHT_PCT_MIN: 70,
+    FACE_HEIGHT_PCT_MAX: 80,
+    FACE_HEIGHT_TARGET: 75,
+    // Haar's frontal-face box covers forehead-to-below-mouth, not crown-to-chin.
+    // INZ measures head height crown-to-chin. Inflate the detected face box by
+    // these fractions of face.h to estimate the full head extent.
+    FACE_TO_HEAD_TOP: 0.35,
+    FACE_TO_HEAD_BOTTOM: 0.10,
+    // Eye-line position, measured as % up from bottom of crop
+    EYE_VPOS_MIN: 55,
+    EYE_VPOS_MAX: 65,
+    EYE_VPOS_TARGET: 60,
+    FACE_CENTER_TOL_PCT: 12,        // face centre within ±12 % of crop centre horizontally
+    HEAD_TILT_MAX_DEG: 5,
+    BG_STDDEV_MAX: 22,              // per-channel std dev; higher = less uniform
+    BG_STDDEV_AMBER: 35,
+    BG_BRIGHTNESS_MIN: 140,         // 0..255; INZ requires "light neutral"
+    BG_BRIGHTNESS_AMBER: 110,
+    BG_EDGE_PCT_MAX: 2.5,           // % of edge pixels in background sample
+    BG_EDGE_PCT_AMBER: 5.0,
+    SHARPNESS_MIN: 45,              // Laplacian variance
+    SHARPNESS_AMBER: 25,
+    FACE_BRIGHTNESS_MIN: 65,
+    FACE_BRIGHTNESS_MAX: 220,
+    ANALYSIS_INTERVAL_MS: 200,
+    WORK_WIDTH: 480,                // downscale for detector speed
+    Q_LO: 0.5,
+    Q_HI: 1.0,
+    // Fallback output widths tried in order when the encode is under 512 KB
+    // even at max quality. Bilinear resize, no pixel-value edits.
+    UPSCALE_TARGETS: [900, 1080, 1200, 1500],
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  const state = {
+    cv: null,
+    faceCascade: null,
+    eyeCascade: null,
+    stream: null,
+    videoTrack: null,
+    devices: [],
+    currentDeviceId: null,
+    videoW: 0,
+    videoH: 0,
+    mirrored: false,
+    running: false,
+    // Shots the user has captured this session; each has a full-res frame,
+    // its crop rect in video-pixel coords, and a timestamp. Users pick from
+    // the gallery — no forced modal after every shot.
+    gallery: [],
+    previewShot: null,        // which gallery shot is open in the modal, if any
+    lastAnalysis: null,
+    lastEstBytes: null,
+    encodeInFlight: false,
+    fpsCounter: 0,
+    fpsTime: performance.now(),
+  };
+
+  // ===== Bootstrap =====
+  const OPENCV_URL = "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js";
+
+  bootstrap().catch((err) => setLoadError(err.message || String(err)));
+
+  async function bootstrap() {
+    setLoadPhase("stepDownload");
+    await loadOpenCV();
+    setLoadPhase("stepInit");
+    setLoadStep("Initialising WebAssembly runtime…", 75);
+    await waitForCvReady(120000);
+    setLoadPhase("stepDetect");
+    setLoadStep("Loading face detectors…", 85);
+    loadCascades();
+    setLoadPhase("stepCam");
+    setLoadStep("Enumerating cameras…", 92);
+    await listCameras();
+    setupUI();
+    if (state.devices.length > 0) {
+      setLoadStep("Requesting camera access…", 97);
+      await startCamera(state.currentDeviceId);
+    } else {
+      setLoadError("No camera detected on this device.");
+    }
+  }
+
+  async function loadOpenCV() {
+    // Try streaming fetch for real progress; fall back to a plain <script> tag
+    // if fetch or blob-url execution is blocked (some strict CSPs disallow blob:).
+    let blob = null;
+    try {
+      blob = await fetchWithProgress(OPENCV_URL, 0, 72, 90000);
+    } catch (e) {
+      setLoadStep("Streaming download blocked; falling back to direct load…", 5);
+    }
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      try {
+        await loadScript(url, 30000);
+        URL.revokeObjectURL(url);
+        return;
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        setLoadStep("Blob execution blocked; retrying direct…", 8);
+      }
+    }
+    await loadScript(OPENCV_URL, 120000);
+  }
+
+  async function fetchWithProgress(url, pctStart, pctEnd, timeoutMs) {
+    setLoadStep("Contacting CDN…", pctStart);
+    const controller = new AbortController();
+    const to = setTimeout(() => controller.abort(), timeoutMs);
+    let resp;
+    try {
+      resp = await fetch(url, { signal: controller.signal, mode: "cors" });
+    } catch (e) {
+      clearTimeout(to);
+      throw new Error("fetch: " + (e && e.message || e));
+    }
+    if (!resp.ok) { clearTimeout(to); throw new Error("HTTP " + resp.status); }
+    const total = parseInt(resp.headers.get("content-length") || "0", 10);
+    if (!resp.body || !resp.body.getReader) {
+      // Streaming not supported — one-shot download without granular progress
+      setLoadStep("Downloading (no progress)…", pctStart + (pctEnd - pctStart) * 0.5);
+      const buf = await resp.arrayBuffer();
+      clearTimeout(to);
+      return new Blob([buf], { type: "application/javascript" });
+    }
+    const reader = resp.body.getReader();
+    const chunks = [];
+    let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      const mb = (received / 1024 / 1024).toFixed(1);
+      if (total > 0) {
+        const totalMb = (total / 1024 / 1024).toFixed(1);
+        const localPct = received / total;
+        const pct = pctStart + localPct * (pctEnd - pctStart);
+        setLoadStep(`Downloading  ${mb} / ${totalMb} MB`, pct);
+      } else {
+        setLoadStep(`Downloading  ${mb} MB`, pctStart + Math.min(0.9, received / 12e6) * (pctEnd - pctStart));
+      }
+    }
+    clearTimeout(to);
+    return new Blob(chunks, { type: "application/javascript" });
+  }
+
+  function loadScript(src, timeoutMs) {
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.async = true;
+      const to = setTimeout(() => rej(new Error("script load timed out after " + Math.round(timeoutMs/1000) + "s")), timeoutMs);
+      s.onload = () => { clearTimeout(to); res(); };
+      s.onerror = () => { clearTimeout(to); rej(new Error("script load failed")); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function setLoadPhase(activeId) {
+    const ids = ["stepDownload", "stepInit", "stepDetect", "stepCam"];
+    let seenActive = false;
+    for (const id of ids) {
+      const el = $(id); if (!el) continue;
+      el.classList.remove("done", "now");
+      if (id === activeId) { el.classList.add("now"); seenActive = true; }
+      else if (!seenActive) el.classList.add("done");
+    }
+  }
+
+  async function waitForCvReady(timeoutMs) {
+    // @techstark opencv-js exposes `cv` as an Emscripten Module. Once the WASM
+    // has initialised, `cv.Mat` and `cv.CascadeClassifier` become real classes.
+    // The Module also exposes a `.then` for Promise-style chaining.
+    const start = Date.now();
+    if (typeof window.cv.then === "function") {
+      await new Promise((res, rej) => {
+        const to = setTimeout(() => rej(new Error("Runtime initialisation timed out.")), timeoutMs);
+        try {
+          window.cv.then((cv) => { clearTimeout(to); window.cv = cv; res(); });
+        } catch (e) { clearTimeout(to); rej(e); }
+      });
+    }
+    while (!(window.cv && window.cv.Mat && window.cv.CascadeClassifier && window.cv.FS_createDataFile)) {
+      if (Date.now() - start > timeoutMs) {
+        const missing = [
+          !window.cv.Mat && "Mat",
+          !window.cv.CascadeClassifier && "CascadeClassifier",
+          !window.cv.FS_createDataFile && "FS_createDataFile",
+        ].filter(Boolean).join(", ");
+        throw new Error("Vision build missing modules: " + missing);
+      }
+      await new Promise((r) => setTimeout(r, 60));
+    }
+    state.cv = window.cv;
+  }
+
+  function setLoadStep(msg, pct) {
+    const el = $("loadStep"); if (el) el.textContent = msg;
+    if (pct != null) {
+      const bar = $("loadBar"); if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    }
+  }
+  function setLoadError(msg) {
+    const box = $("stageMsg"); if (!box) return;
+    box.classList.add("error");
+    const t = $("loadTitle"); if (t) t.textContent = "Could not start";
+    const s = $("loadStep"); if (s) s.textContent = msg;
+    const bar = $("loadBar"); if (bar) bar.style.width = "100%";
+  }
+  function hideLoadOverlay() {
+    const box = $("stageMsg"); if (box) box.hidden = true;
+    const wrap = $("vidWrap"); if (wrap) wrap.hidden = false;
+  }
+
+  function b64ToBytes(b64) {
+    const clean = b64.replace(/\s+/g, "");
+    const bin = atob(clean);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function loadCascades() {
+    const cv = state.cv;
+    const faceB64 = $("cascade-face").textContent;
+    const eyeB64 = $("cascade-eye").textContent;
+    if (faceB64.indexOf("___BASE64") !== -1) {
+      throw new Error("Cascade placeholders were not substituted at build time.");
+    }
+    const faceBytes = b64ToBytes(faceB64);
+    const eyeBytes = b64ToBytes(eyeB64);
+    cv.FS_createDataFile("/", "face.xml", faceBytes, true, false, false);
+    cv.FS_createDataFile("/", "eye.xml", eyeBytes, true, false, false);
+    state.faceCascade = new cv.CascadeClassifier();
+    if (!state.faceCascade.load("face.xml")) throw new Error("Face cascade load failed.");
+    state.eyeCascade = new cv.CascadeClassifier();
+    if (!state.eyeCascade.load("eye.xml")) throw new Error("Eye cascade load failed.");
+  }
+
+  // ===== 2. Cameras =====
+  async function listCameras() {
+    try {
+      // Prompt for permission so labels populate on subsequent enumerate
+      const probe = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      probe.getTracks().forEach((t) => t.stop());
+    } catch (_) { /* proceed; select will show unlabelled devices */ }
+    try {
+      const devs = await navigator.mediaDevices.enumerateDevices();
+      state.devices = devs.filter((d) => d.kind === "videoinput");
+    } catch (_) {
+      state.devices = [];
+    }
+    const sel = $("camSelect");
+    sel.innerHTML = "";
+    sel.disabled = false;
+    if (state.devices.length === 0) {
+      const opt = document.createElement("option");
+      opt.value = ""; opt.textContent = "No camera detected";
+      sel.appendChild(opt);
+      sel.disabled = true;
+      $("startBtn").disabled = true;
+      return;
+    }
+    state.devices.forEach((d, i) => {
+      const opt = document.createElement("option");
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Camera ${i + 1}`;
+      sel.appendChild(opt);
+    });
+    state.currentDeviceId = state.devices[0].deviceId;
+    sel.value = state.currentDeviceId;
+    $("startBtn").disabled = false;
+  }
+
+  async function startCamera(deviceId) {
+    stopCamera();
+    const constraints = {
+      audio: false,
+      video: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        width: { ideal: 1920, min: 1280 },
+        height: { ideal: 1440, min: 960 },
+        frameRate: { ideal: 30 },
+      },
+    };
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: deviceId ? { exact: deviceId } : undefined }, audio: false });
+      } catch (err2) {
+        setLoadError("Camera access failed: " + (err2 && err2.message || err2));
+        return;
+      }
+    }
+    state.stream = stream;
+    state.videoTrack = stream.getVideoTracks()[0];
+    const video = $("video");
+    video.srcObject = stream;
+    await new Promise((res) => {
+      video.onloadedmetadata = () => { video.play(); res(); };
+    });
+    state.videoW = video.videoWidth;
+    state.videoH = video.videoHeight;
+    $("camInfo").textContent = `${state.videoW}×${state.videoH}`;
+    state.running = true;
+    hideLoadOverlay();
+    fitOverlay();
+    analyzeLoop();
+  }
+
+  function stopCamera() {
+    state.running = false;
+    state.frozen = false;
+    if (state.stream) {
+      state.stream.getTracks().forEach((t) => t.stop());
+      state.stream = null;
+      state.videoTrack = null;
+    }
+    if (state.frozenCanvas) {
+      state.frozenCanvas.remove();
+      state.frozenCanvas = null;
+    }
+    const wrap = $("vidWrap");
+    const oldFrozen = wrap.querySelector("canvas.frozen");
+    if (oldFrozen) oldFrozen.remove();
+    $("video").hidden = false;
+    updateCaptureBar();
+  }
+
+  // ===== 3. UI wiring =====
+  function setupUI() {
+    $("startBtn").addEventListener("click", () => {
+      const id = $("camSelect").value || state.currentDeviceId;
+      startCamera(id);
+    });
+    $("camSelect").addEventListener("change", (e) => {
+      state.currentDeviceId = e.target.value;
+      if (state.running) startCamera(e.target.value);
+    });
+    $("mirrorBtn").addEventListener("click", () => {
+      state.mirrored = !state.mirrored;
+      $("mirrorBtn").textContent = state.mirrored ? "Un-mirror preview" : "Mirror preview";
+      applyMirror();
+    });
+    $("captureBtn").addEventListener("click", captureOrSave);
+    window.addEventListener("resize", () => {
+      if (state.running || state.frozen) fitOverlay();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.target && (e.target.tagName === "SELECT" || e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+      if (state.previewShot) {
+        if (e.key === "Escape") { e.preventDefault(); closePreview(); }
+        else if (e.code === "Space" || e.key === "Enter" || e.key === "s" || e.key === "S") { e.preventDefault(); saveOutput(); }
+        return;
+      }
+      if (e.code === "Space") { e.preventDefault(); captureOrSave(); }
+    });
+    // Wire modal buttons
+    $("modalCloseBtn").addEventListener("click", closePreview);
+    $("modalCloseBtn2").addEventListener("click", closePreview);
+    $("modalDiscardBtn").addEventListener("click", discardCurrentShot);
+    $("modalSaveBtn").addEventListener("click", saveOutput);
+    // Click outside modal panel to close
+    $("previewModal").addEventListener("click", (e) => {
+      if (e.target === $("previewModal")) closePreview();
+    });
+    updateCaptureBar();
+  }
+
+  function applyMirror() {
+    const video = $("video");
+    const overlay = $("overlay");
+    const t = state.mirrored ? "scaleX(-1)" : "";
+    video.style.transform = t;
+    overlay.style.transform = t;
+    const frozen = $("vidWrap").querySelector("canvas.frozen");
+    if (frozen) frozen.style.transform = t;
+  }
+
+  // ===== 4. Overlay sizing =====
+  function fitOverlay() {
+    const video = $("video");
+    const overlay = $("overlay");
+    const wrap = $("vidWrap");
+    let dispW, dispH;
+    if (state.frozen && state.frozenCanvas) {
+      const c = wrap.querySelector("canvas.frozen");
+      dispW = c.clientWidth; dispH = c.clientHeight;
+    } else {
+      dispW = video.clientWidth; dispH = video.clientHeight;
+    }
+    if (!dispW || !dispH) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    overlay.width = Math.round(dispW * dpr);
+    overlay.height = Math.round(dispH * dpr);
+    overlay.style.width = dispW + "px";
+    overlay.style.height = dispH + "px";
+    const ctx = overlay.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // ===== 5. Analysis loop =====
+  let workCanvas = null;
+  function getWorkCanvas(w, h) {
+    if (!workCanvas) workCanvas = document.createElement("canvas");
+    if (workCanvas.width !== w || workCanvas.height !== h) {
+      workCanvas.width = w; workCanvas.height = h;
+    }
+    return workCanvas;
+  }
+
+  async function analyzeLoop() {
+    if (!state.running) return;
+    if (state.frozen) return;
+    const video = $("video");
+    if (video.readyState >= 2 && video.videoWidth > 0) {
+      try {
+        const raw = analyzeFrame(video);
+        const analysis = smoothAnalysis(raw);
+        state.lastAnalysis = analysis;
+        updateChecks(analysis);
+        drawOverlay(analysis, video.videoWidth, video.videoHeight);
+        updateCaptureBar();
+        scheduleSizeEstimate();
+      } catch (err) {
+        console.warn("analyzeFrame error:", err);
+      }
+      state.fpsCounter++;
+      const now = performance.now();
+      if (now - state.fpsTime > 1000) {
+        $("fpsInfo").textContent = state.fpsCounter + " chk/s";
+        state.fpsCounter = 0;
+        state.fpsTime = now;
+      }
+    }
+    setTimeout(analyzeLoop, CFG.ANALYSIS_INTERVAL_MS);
+  }
+
+  function analyzeFrame(video) {
+    const cv = state.cv;
+    const vw = video.videoWidth, vh = video.videoHeight;
+    const workW = CFG.WORK_WIDTH;
+    const workH = Math.round(workW * vh / vw);
+    const wc = getWorkCanvas(workW, workH);
+    const wctx = wc.getContext("2d");
+    wctx.drawImage(video, 0, 0, workW, workH);
+
+    const src = cv.imread(wc);           // RGBA
+    const gray = new cv.Mat();
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+    const analysis = {
+      workW, workH, videoW: vw, videoH: vh,
+      face: null, faceCount: 0, eyes: [],
+      cropRect: null,
+      background: null,
+      sharpness: null,
+      faceBrightness: null,
+      headTiltDeg: null,
+    };
+
+    // Face detect
+    const faces = new cv.RectVector();
+    try {
+      state.faceCascade.detectMultiScale(gray, faces, 1.15, 4, 0, new cv.Size(60, 60), new cv.Size(0, 0));
+    } catch (_) {}
+    analysis.faceCount = faces.size();
+    if (faces.size() > 0) {
+      let mi = 0, ma = 0;
+      for (let i = 0; i < faces.size(); i++) {
+        const f = faces.get(i);
+        const a = f.width * f.height;
+        if (a > ma) { ma = a; mi = i; }
+      }
+      const f = faces.get(mi);
+      analysis.face = { x: f.x, y: f.y, w: f.width, h: f.height };
+
+      // Eye detect within upper 2/3 of face
+      const eyeSearch = new cv.Rect(f.x, f.y, f.width, Math.round(f.height * 0.66));
+      const eyeRoi = gray.roi(eyeSearch);
+      const eyes = new cv.RectVector();
+      try {
+        // Loose params: scaleFactor 1.05 and minNeighbors 2 favour recall over precision.
+        // The check is informational, not a capture gate, so extra false positives are fine —
+        // they get filtered by the upper-half constraint and largest-two selection below.
+        state.eyeCascade.detectMultiScale(eyeRoi, eyes, 1.05, 2, 0, new cv.Size(Math.round(f.width*0.06), Math.round(f.height*0.04)), new cv.Size(Math.round(f.width*0.60), Math.round(f.height*0.40)));
+      } catch (_) {}
+      const eyeList = [];
+      for (let i = 0; i < eyes.size(); i++) {
+        const e = eyes.get(i);
+        eyeList.push({ x: eyeSearch.x + e.x, y: eyeSearch.y + e.y, w: e.width, h: e.height });
+      }
+      // Sort by area desc, take top 2
+      eyeList.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+      analysis.eyes = eyeList.slice(0, 2);
+      // Head tilt from the two eye centres
+      if (analysis.eyes.length === 2) {
+        const e0 = analysis.eyes[0], e1 = analysis.eyes[1];
+        const cx0 = e0.x + e0.w/2, cy0 = e0.y + e0.h/2;
+        const cx1 = e1.x + e1.w/2, cy1 = e1.y + e1.h/2;
+        const dx = cx1 - cx0, dy = cy1 - cy0;
+        const deg = Math.atan2(Math.abs(dy), Math.abs(dx)) * 180 / Math.PI;
+        analysis.headTiltDeg = deg;
+      }
+      eyeRoi.delete(); eyes.delete();
+
+      analysis.cropRect = computeCropRect(analysis.face, analysis.eyes, workW, workH);
+    } else {
+      analysis.cropRect = defaultCropRect(workW, workH);
+    }
+    faces.delete();
+
+    // Background analysis
+    if (analysis.cropRect) {
+      analysis.background = analyzeBackground(src, gray, analysis.cropRect, analysis.face);
+    }
+    // Sharpness (Laplacian variance) on face region
+    if (analysis.face) {
+      analysis.sharpness = computeLaplacianVar(gray, analysis.face);
+      analysis.faceBrightness = computeMeanGray(gray, analysis.face);
+    }
+
+    src.delete(); gray.delete();
+    return analysis;
+  }
+
+  // ===== Temporal smoothing =====
+  // Per-frame Haar detection is stochastic. Smooth numeric metrics with a
+  // 5-frame rolling median, and carry the last detected face/eyes forward for
+  // up to 3 missed frames. Prevents "one second green, next second amber".
+  const HIST_LEN = 5;
+  const CARRY_FRAMES = 3;
+  const hist = {
+    face: [], eyes: [], tilt: [], sharp: [], bright: [],
+    bgStd: [], bgY: [], bgEdge: [],
+  };
+  function pushHist(key, val) {
+    hist[key].push(val);
+    if (hist[key].length > HIST_LEN) hist[key].shift();
+  }
+  function lastValid(key) {
+    const arr = hist[key];
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (arr[i] != null) return { val: arr[i], age: arr.length - 1 - i };
+    }
+    return { val: null, age: Infinity };
+  }
+  function median(key) {
+    const vals = hist[key].filter((v) => v != null);
+    if (vals.length === 0) return null;
+    const sorted = [...vals].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+
+  function smoothAnalysis(a) {
+    pushHist("face", a.face);
+    pushHist("eyes", a.eyes && a.eyes.length > 0 ? a.eyes : null);
+    pushHist("tilt", a.headTiltDeg);
+    pushHist("sharp", a.sharpness);
+    pushHist("bright", a.faceBrightness);
+    pushHist("bgStd", a.background ? a.background.maxRgbStd : null);
+    pushHist("bgY",   a.background ? a.background.meanBrightness : null);
+    pushHist("bgEdge",a.background ? a.background.maxEdgePct : null);
+    // Carry face/eyes forward on transient detector misses
+    if (!a.face) {
+      const f = lastValid("face");
+      if (f.val && f.age <= CARRY_FRAMES) a.face = f.val;
+    }
+    if (!a.eyes || a.eyes.length === 0) {
+      const e = lastValid("eyes");
+      if (e.val && e.age <= CARRY_FRAMES) a.eyes = e.val;
+    }
+    // Rolling-median numeric metrics
+    const tm = median("tilt");   if (tm != null) a.headTiltDeg    = tm;
+    const sm = median("sharp");  if (sm != null) a.sharpness      = sm;
+    const bm = median("bright"); if (bm != null) a.faceBrightness = bm;
+    const gStd = median("bgStd"), gY = median("bgY"), gEdge = median("bgEdge");
+    if (gStd != null || gY != null || gEdge != null) {
+      a.background = {
+        maxRgbStd:      gStd  != null ? gStd  : (a.background ? a.background.maxRgbStd : 0),
+        meanBrightness: gY    != null ? gY    : (a.background ? a.background.meanBrightness : 0),
+        maxEdgePct:     gEdge != null ? gEdge : (a.background ? a.background.maxEdgePct : 0),
+        maxStdDev:      a.background ? a.background.maxStdDev : 0,
+        sampleCount:    a.background ? a.background.sampleCount : 0,
+      };
+    }
+    // Recompute crop from smoothed face/eyes so the overlay tracks smoothly.
+    if (a.face) {
+      a.cropRect = computeCropRect(a.face, a.eyes, a.workW, a.workH);
+    }
+    return a;
+  }
+
+  function computeCropRect(face, eyes, workW, workH) {
+    // Inflate Haar face box to the estimated crown-to-chin head extent.
+    // Target: head 75 % of crop height, horiz-centred on face centre,
+    // eye line 40 % from top of crop (i.e. 60 % up from bottom).
+    const headH = face.h * (1 + CFG.FACE_TO_HEAD_TOP + CFG.FACE_TO_HEAD_BOTTOM);
+    let eyeYWork;
+    if (eyes && eyes.length === 2) {
+      eyeYWork = (eyes[0].y + eyes[0].h/2 + eyes[1].y + eyes[1].h/2) / 2;
+    } else if (eyes && eyes.length === 1) {
+      eyeYWork = eyes[0].y + eyes[0].h/2;
+    } else {
+      eyeYWork = face.y + 0.42 * face.h;
+    }
+    const cropH = headH / (CFG.FACE_HEIGHT_TARGET / 100);
+    const cropW = cropH * CFG.ASPECT;
+    const cropY = eyeYWork - 0.40 * cropH;
+    const cropX = face.x + face.w/2 - cropW/2;
+    return {
+      x: cropX, y: cropY, w: cropW, h: cropH,
+      headH, workW, workH,
+      fits: cropX >= 0 && cropY >= 0 && (cropX + cropW) <= workW && (cropY + cropH) <= workH,
+    };
+  }
+
+  function defaultCropRect(workW, workH) {
+    // Largest 3:4 rectangle centred
+    let w, h;
+    const ar = workW / workH;
+    if (ar > CFG.ASPECT) { h = workH; w = h * CFG.ASPECT; }
+    else { w = workW; h = w / CFG.ASPECT; }
+    return { x: (workW - w)/2, y: (workH - h)/2, w, h, workW, workH, fits: true };
+  }
+
+  function analyzeBackground(rgba, gray, crop, face) {
+    const cv = state.cv;
+    const vw = rgba.cols, vh = rgba.rows;
+    const sample = (rect) => {
+      const cx = Math.max(0, Math.round(rect.x));
+      const cy = Math.max(0, Math.round(rect.y));
+      const cw = Math.min(vw - cx, Math.round(rect.w));
+      const ch = Math.min(vh - cy, Math.round(rect.h));
+      if (cw < 6 || ch < 6) return null;
+      const r = new cv.Rect(cx, cy, cw, ch);
+      const roiRgba = rgba.roi(r);
+      const roiGray = gray.roi(r);
+      const stdDev = new cv.Mat();
+      const mean = new cv.Mat();
+      cv.meanStdDev(roiGray, mean, stdDev);
+      const meanVal = mean.doubleAt(0, 0);
+      const stdVal = stdDev.doubleAt(0, 0);
+      const chMean = new cv.Mat(); const chStd = new cv.Mat();
+      cv.meanStdDev(roiRgba, chMean, chStd);
+      const rStd = chStd.doubleAt(0, 0);
+      const gStd = chStd.doubleAt(1, 0);
+      const bStd = chStd.doubleAt(2, 0);
+      const edges = new cv.Mat();
+      cv.Canny(roiGray, edges, 60, 160);
+      const nonZero = cv.countNonZero(edges);
+      const edgePct = (nonZero / (cw * ch)) * 100;
+      edges.delete(); mean.delete(); stdDev.delete(); chMean.delete(); chStd.delete();
+      roiRgba.delete(); roiGray.delete();
+      return { meanVal, stdVal, rgbMaxStd: Math.max(rStd, gStd, bStd), edgePct, area: cw * ch };
+    };
+
+    // Small extreme-corner strips: crop corners first, then video corners as fallback.
+    // Video corners are almost always pure background so they anchor the check when
+    // the crop overflows the video or the face fills most of the crop.
+    const cropSW = Math.max(24, crop.w * 0.10);
+    const cropSH = Math.max(24, crop.h * 0.15);
+    const vidSW  = Math.max(24, vw * 0.10);
+    const vidSH  = Math.max(24, vh * 0.15);
+    const strips = [
+      // Video corners (reliable background)
+      { x: 0,           y: 0,           w: vidSW, h: vidSH },
+      { x: vw - vidSW,  y: 0,           w: vidSW, h: vidSH },
+      { x: 0,           y: vh - vidSH,  w: vidSW, h: vidSH },
+      { x: vw - vidSW,  y: vh - vidSH,  w: vidSW, h: vidSH },
+      // Crop corners (represents what will end up in the final photo)
+      { x: crop.x,                 y: crop.y,                 w: cropSW, h: cropSH },
+      { x: crop.x + crop.w - cropSW, y: crop.y,               w: cropSW, h: cropSH },
+    ];
+    // Skip strips that overlap the face plus a small hair margin.
+    let expFace = null;
+    if (face) {
+      const pad = face.w * 0.10;
+      expFace = { x: face.x - pad, y: face.y - pad, w: face.w + pad*2, h: face.h + pad*2 };
+    }
+    const results = [];
+    for (const s of strips) {
+      if (expFace && !(s.x + s.w < expFace.x || s.x > expFace.x + expFace.w || s.y + s.h < expFace.y || s.y > expFace.y + expFace.h)) continue;
+      const r = sample(s);
+      if (r) results.push(r);
+    }
+    if (results.length === 0) return null;
+    // Aggregate
+    let totalArea = 0, weightedMean = 0, maxStd = 0, maxRgb = 0, maxEdge = 0;
+    for (const r of results) {
+      totalArea += r.area;
+      weightedMean += r.meanVal * r.area;
+      if (r.stdVal > maxStd) maxStd = r.stdVal;
+      if (r.rgbMaxStd > maxRgb) maxRgb = r.rgbMaxStd;
+      if (r.edgePct > maxEdge) maxEdge = r.edgePct;
+    }
+    return {
+      meanBrightness: weightedMean / totalArea,
+      maxStdDev: maxStd,
+      maxRgbStd: maxRgb,
+      maxEdgePct: maxEdge,
+      sampleCount: results.length,
+    };
+  }
+
+  function computeLaplacianVar(gray, face) {
+    const cv = state.cv;
+    const r = new cv.Rect(Math.max(0, face.x), Math.max(0, face.y), Math.min(gray.cols - face.x, face.w), Math.min(gray.rows - face.y, face.h));
+    if (r.width <= 4 || r.height <= 4) return 0;
+    const roi = gray.roi(r);
+    const lap = new cv.Mat();
+    cv.Laplacian(roi, lap, cv.CV_64F, 3, 1, 0, cv.BORDER_DEFAULT);
+    const mean = new cv.Mat(); const std = new cv.Mat();
+    cv.meanStdDev(lap, mean, std);
+    const s = std.doubleAt(0, 0);
+    roi.delete(); lap.delete(); mean.delete(); std.delete();
+    return s * s;   // variance
+  }
+
+  function computeMeanGray(gray, face) {
+    const cv = state.cv;
+    const r = new cv.Rect(Math.max(0, face.x), Math.max(0, face.y), Math.min(gray.cols - face.x, face.w), Math.min(gray.rows - face.y, face.h));
+    if (r.width <= 4 || r.height <= 4) return 0;
+    const roi = gray.roi(r);
+    const m = cv.mean(roi);
+    roi.delete();
+    return m[0];
+  }
+
+  // ===== 6. Overlay drawing =====
+  function drawOverlay(a, srcW, srcH) {
+    const overlay = $("overlay");
+    const ctx = overlay.getContext("2d");
+    const dispW = parseFloat(overlay.style.width);
+    const dispH = parseFloat(overlay.style.height);
+    if (!dispW || !dispH) return;
+    ctx.clearRect(0, 0, dispW, dispH);
+
+    // Convert work-canvas coords to display coords.
+    // The video/overlay display maps 1:1 to the video's video resolution (srcW × srcH).
+    // Work canvas maps to a scaled version — scale by workW/srcW.
+    // So work→display factor is: display / work = display / workW.
+    const wScaleX = dispW / a.workW;
+    const wScaleY = dispH / a.workH;
+
+    // Dim outside crop
+    if (a.cropRect) {
+      const c = a.cropRect;
+      const cx = c.x * wScaleX, cy = c.y * wScaleY;
+      const cw = c.w * wScaleX, ch = c.h * wScaleY;
+      ctx.fillStyle = "rgba(10, 14, 18, 0.55)";
+      ctx.fillRect(0, 0, dispW, Math.max(0, cy));
+      ctx.fillRect(0, cy, Math.max(0, cx), ch);
+      ctx.fillRect(cx + cw, cy, Math.max(0, dispW - (cx + cw)), ch);
+      ctx.fillRect(0, cy + ch, dispW, Math.max(0, dispH - (cy + ch)));
+      // Crop border
+      ctx.strokeStyle = c.fits ? "#FFFFFF" : "#E38080";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(cx + 1, cy + 1, cw - 2, ch - 2);
+
+      // Face-zone rectangle: target 75 % of crop height, centred horizontally
+      const fzH = ch * (CFG.FACE_HEIGHT_TARGET / 100);
+      const fzW = cw * 0.55;
+      const fzX = cx + (cw - fzW)/2;
+      // Eye line at 40 % down from crop top
+      const eyeLineY = cy + ch * 0.40;
+      const fzY = eyeLineY - 0.42 * fzH;
+      ctx.save();
+      ctx.strokeStyle = "#F2C744";
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(fzX, fzY, fzW, fzH);
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath();
+      ctx.moveTo(cx + 8, eyeLineY);
+      ctx.lineTo(cx + cw - 8, eyeLineY);
+      ctx.stroke();
+      ctx.restore();
+
+      // Rule-of-thirds thin lines
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 3; i++) {
+        const gx = cx + (cw * i)/3;
+        ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(gx, cy + ch); ctx.stroke();
+        const gy = cy + (ch * i)/3;
+        ctx.beginPath(); ctx.moveTo(cx, gy); ctx.lineTo(cx + cw, gy); ctx.stroke();
+      }
+    }
+
+    // Face bbox
+    if (a.face) {
+      const f = a.face;
+      const fx = f.x * wScaleX, fy = f.y * wScaleY, fw = f.w * wScaleX, fh = f.h * wScaleY;
+      const allGreen = a.__allGreen === true;
+      const someBad = a.__anyBad === true;
+      ctx.strokeStyle = allGreen ? "#7AC58A" : (someBad ? "#E38080" : "#F2C744");
+      ctx.lineWidth = 2;
+      ctx.strokeRect(fx, fy, fw, fh);
+    }
+    // Eyes
+    if (a.eyes) {
+      ctx.strokeStyle = "#8FD3CD";
+      ctx.lineWidth = 1.5;
+      for (const e of a.eyes) {
+        const ex = e.x * wScaleX, ey = e.y * wScaleY, ew = e.w * wScaleX, eh = e.h * wScaleY;
+        ctx.beginPath();
+        ctx.ellipse(ex + ew/2, ey + eh/2, ew/2, eh/2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+  }
+
+  // ===== 7. Checks =====
+  function updateChecks(a) {
+    const b = a.background;
+    const cropVideoW = a.cropRect ? Math.round(a.cropRect.w * a.videoW / a.workW) : 0;
+
+    // Face count
+    setCheck("chkFace", "vFace",
+      a.faceCount === 1 ? "ok" : (a.faceCount === 0 ? "bad" : "bad"),
+      a.faceCount + " detected");
+
+    // Head height (estimated crown-to-chin) as fraction of crop height
+    let headPct = null;
+    if (a.face && a.cropRect && a.cropRect.headH) {
+      headPct = (a.cropRect.headH / a.cropRect.h) * 100;
+    }
+    if (headPct == null) {
+      setCheck("chkFaceSize", "vFaceSize", "bad", "—");
+    } else {
+      const inRange = headPct >= CFG.FACE_HEIGHT_PCT_MIN && headPct <= CFG.FACE_HEIGHT_PCT_MAX;
+      const st = (inRange && a.cropRect.fits) ? "ok" : (a.cropRect.fits ? "warn" : "bad");
+      setCheck("chkFaceSize", "vFaceSize", st, a.cropRect.fits ? headPct.toFixed(1) + " %" : "move back");
+    }
+
+    // Face horizontal centring vs crop centre
+    if (a.face && a.cropRect) {
+      const fc = a.face.x + a.face.w/2;
+      const cc = a.cropRect.x + a.cropRect.w/2;
+      const offPct = Math.abs(fc - cc) / a.cropRect.w * 100;
+      const st = offPct <= CFG.FACE_CENTER_TOL_PCT ? "ok" : (offPct <= 25 ? "warn" : "bad");
+      setCheck("chkFaceCenter", "vFaceCenter", st, "±" + offPct.toFixed(1) + " %");
+    } else setCheck("chkFaceCenter", "vFaceCenter", "bad", "—");
+
+    // Eyes — Haar detection is unreliable behind glasses. 1 or 2 detected is fine;
+    // 0 = amber (user visually verifies that both eyes are open).
+    const eyeCount = a.eyes ? a.eyes.length : 0;
+    setCheck("chkEyes", "vEyes",
+      eyeCount >= 1 ? "ok" : "warn",
+      eyeCount === 0 ? "look at camera" : eyeCount + " detected");
+
+    // Eye-line vertical position (% up from bottom of crop)
+    if (a.cropRect && a.eyes && a.eyes.length > 0) {
+      let eyeY;
+      if (a.eyes.length === 2) eyeY = (a.eyes[0].y + a.eyes[0].h/2 + a.eyes[1].y + a.eyes[1].h/2) / 2;
+      else eyeY = a.eyes[0].y + a.eyes[0].h/2;
+      const posFromTop = (eyeY - a.cropRect.y) / a.cropRect.h;
+      const upFromBottom = (1 - posFromTop) * 100;
+      const st = (upFromBottom >= CFG.EYE_VPOS_MIN && upFromBottom <= CFG.EYE_VPOS_MAX) ? "ok"
+              : (upFromBottom >= 48 && upFromBottom <= 72 ? "warn" : "bad");
+      setCheck("chkEyeLine", "vEyeLine", st, upFromBottom.toFixed(1) + " %");
+    } else setCheck("chkEyeLine", "vEyeLine", "bad", "—");
+
+    // Head tilt needs two eye centres. If detection didn't give us both, we can't
+    // measure — treat as OK rather than block capture on a missing measurement.
+    if (a.headTiltDeg != null) {
+      const st = a.headTiltDeg <= CFG.HEAD_TILT_MAX_DEG ? "ok" : (a.headTiltDeg <= 10 ? "warn" : "bad");
+      setCheck("chkTilt", "vTilt", st, a.headTiltDeg.toFixed(1) + "°");
+    } else setCheck("chkTilt", "vTilt", "ok", "—");
+
+    // Background uniformity
+    if (b) {
+      const stU = b.maxRgbStd <= CFG.BG_STDDEV_MAX ? "ok" : (b.maxRgbStd <= CFG.BG_STDDEV_AMBER ? "warn" : "bad");
+      setCheck("chkBgUniform", "vBgUniform", stU, "σ " + b.maxRgbStd.toFixed(1));
+      const stL = b.meanBrightness >= CFG.BG_BRIGHTNESS_MIN ? "ok" : (b.meanBrightness >= CFG.BG_BRIGHTNESS_AMBER ? "warn" : "bad");
+      setCheck("chkBgLight", "vBgLight", stL, "Y " + Math.round(b.meanBrightness));
+      const stE = b.maxEdgePct <= CFG.BG_EDGE_PCT_MAX ? "ok" : (b.maxEdgePct <= CFG.BG_EDGE_PCT_AMBER ? "warn" : "bad");
+      setCheck("chkBgEdges", "vBgEdges", stE, b.maxEdgePct.toFixed(1) + " %");
+    } else {
+      setCheck("chkBgUniform", "vBgUniform", "warn", "—");
+      setCheck("chkBgLight", "vBgLight", "warn", "—");
+      setCheck("chkBgEdges", "vBgEdges", "warn", "—");
+    }
+
+    // Sharpness
+    if (a.sharpness != null) {
+      const st = a.sharpness >= CFG.SHARPNESS_MIN ? "ok" : (a.sharpness >= CFG.SHARPNESS_AMBER ? "warn" : "bad");
+      setCheck("chkSharp", "vSharp", st, "L " + a.sharpness.toFixed(0));
+    } else setCheck("chkSharp", "vSharp", "bad", "—");
+
+    // Face exposure
+    if (a.faceBrightness != null) {
+      const b0 = a.faceBrightness;
+      const st = (b0 >= CFG.FACE_BRIGHTNESS_MIN && b0 <= CFG.FACE_BRIGHTNESS_MAX) ? "ok" : "warn";
+      setCheck("chkExposure", "vExposure", st, "Y " + Math.round(b0));
+    } else setCheck("chkExposure", "vExposure", "bad", "—");
+
+    // Resolution — crop width in video pixels must be ≥ MIN_W
+    if (cropVideoW >= CFG.MIN_W) setCheck("chkResolution", "vResolution", "ok", cropVideoW + " px");
+    else setCheck("chkResolution", "vResolution", "bad", cropVideoW + " px");
+
+    // Aggregate state for the overlay coloring
+    const allChecks = ["chkFace","chkFaceSize","chkFaceCenter","chkEyes","chkEyeLine","chkTilt","chkBgUniform","chkBgLight","chkBgEdges","chkSharp","chkExposure","chkResolution"];
+    let anyBad = false, anyWarn = false;
+    for (const id of allChecks) {
+      const el = $(id);
+      if (el.classList.contains("bad")) anyBad = true;
+      else if (el.classList.contains("warn")) anyWarn = true;
+    }
+    a.__anyBad = anyBad;
+    a.__allGreen = !anyBad && !anyWarn;
+    a.__anyWarn = anyWarn;
+
+    // Readouts
+    setDD("rSrc", a.videoW + "×" + a.videoH);
+    if (a.cropRect) {
+      const cw = Math.round(a.cropRect.w * a.videoW / a.workW);
+      const ch = Math.round(a.cropRect.h * a.videoH / a.workH);
+      setDD("rCrop", cw + "×" + ch);
+      const outW = Math.max(CFG.MIN_W, Math.min(CFG.MAX_W, cw));
+      const outH = Math.round(outW * 4/3);
+      setDD("rOut", outW + "×" + outH);
+    } else {
+      setDD("rCrop", "—", true);
+      setDD("rOut", "—", true);
+    }
+    setDD("rSize", state.lastEstBytes != null ? formatBytes(state.lastEstBytes) : "—", state.lastEstBytes == null);
+  }
+
+  function setCheck(cardId, valueId, cls, text) {
+    const el = $(cardId);
+    el.classList.remove("ok", "warn", "bad");
+    if (cls) el.classList.add(cls);
+    $(valueId).textContent = text;
+  }
+  function setDD(id, txt, na) {
+    const el = $(id);
+    el.textContent = txt;
+    el.classList.toggle("na", !!na);
+  }
+  function formatBytes(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024*1024) return (n/1024).toFixed(0) + " KB";
+    return (n/1024/1024).toFixed(2) + " MB";
+  }
+
+  // ===== 8. Capture bar =====
+  function updateCaptureBar() {
+    const hint = $("mainHint");
+    const btn = $("captureBtn");
+    const bar = $("captureBar");
+    if (!state.running) {
+      if (bar) { bar.classList.remove("ready", "blocked"); }
+      hint.textContent = "Waiting for camera…";
+      btn.textContent = "Capture";
+      btn.disabled = true;
+      return;
+    }
+    const a = state.lastAnalysis;
+    if (!a || !a.face) {
+      if (bar) { bar.classList.remove("ready"); bar.classList.add("blocked"); }
+      hint.textContent = "Waiting for face detection…";
+      btn.textContent = "Capture";
+      btn.disabled = true;
+      return;
+    }
+    const canCapture = a.__allGreen && a.cropRect && a.cropRect.fits;
+    const stage = $("stage");
+    if (stage) stage.classList.toggle("ready", canCapture);
+    if (bar) {
+      bar.classList.toggle("ready", canCapture);
+      bar.classList.toggle("blocked", !canCapture);
+    }
+    if (canCapture) {
+      hint.textContent = "READY — press SPACE to capture.";
+      btn.disabled = false;
+    } else {
+      hint.textContent = a.__anyBad
+        ? "Not ready. Fix the red checks."
+        : "Not ready. Clear the amber checks.";
+      btn.disabled = true;
+    }
+    btn.textContent = "Capture";
+  }
+
+  function captureOrSave() {
+    if (state.previewShot) { saveOutput(); return; }
+    if (!state.running) return;
+    const a = state.lastAnalysis;
+    if (!a || !a.face || !a.cropRect || !a.cropRect.fits || !a.__allGreen) return;
+    captureShot(a);
+  }
+
+  function captureShot(a) {
+    const video = $("video");
+    const cropVideo = {
+      x: Math.round(a.cropRect.x * a.videoW / a.workW),
+      y: Math.round(a.cropRect.y * a.videoH / a.workH),
+      w: Math.round(a.cropRect.w * a.videoW / a.workW),
+      h: Math.round(a.cropRect.h * a.videoH / a.workH),
+    };
+    const full = document.createElement("canvas");
+    full.width = video.videoWidth;
+    full.height = video.videoHeight;
+    full.getContext("2d", { colorSpace: "srgb" }).drawImage(video, 0, 0);
+    const shot = {
+      id: "s" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+      fullCanvas: full,
+      cropVideo: cropVideo,
+      timestamp: new Date(),
+    };
+    state.gallery.push(shot);
+    renderGallery();
+    flashCaptured();
+  }
+
+  function flashCaptured() {
+    const stage = $("stage");
+    stage.classList.remove("flash");
+    // Force reflow so the animation restarts cleanly on rapid captures
+    void stage.offsetWidth;
+    stage.classList.add("flash");
+    setTimeout(() => stage.classList.remove("flash"), 400);
+  }
+
+  function renderGallery() {
+    const g = $("gallery");
+    g.innerHTML = "";
+    state.gallery.forEach((shot, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "thumb";
+      btn.setAttribute("aria-label", `Shot ${i + 1} taken at ${shot.timestamp.toLocaleTimeString()}`);
+      const c = document.createElement("canvas");
+      c.width = 132; c.height = 176;
+      const cctx = c.getContext("2d", { colorSpace: "srgb" });
+      cctx.imageSmoothingEnabled = true;
+      cctx.imageSmoothingQuality = "high";
+      cctx.drawImage(shot.fullCanvas, shot.cropVideo.x, shot.cropVideo.y, shot.cropVideo.w, shot.cropVideo.h, 0, 0, c.width, c.height);
+      btn.appendChild(c);
+      const idx = document.createElement("span");
+      idx.className = "thumb-idx";
+      idx.textContent = "#" + (i + 1);
+      btn.appendChild(idx);
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "thumb-remove";
+      rm.setAttribute("aria-label", "Discard shot " + (i + 1));
+      rm.textContent = "×";
+      rm.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.gallery = state.gallery.filter((s) => s.id !== shot.id);
+        renderGallery();
+      });
+      btn.appendChild(rm);
+      btn.addEventListener("click", () => openPreview(shot));
+      g.appendChild(btn);
+    });
+  }
+
+  function openPreview(shot) {
+    state.previewShot = shot;
+    const dispW = 380, dispH = Math.round(dispW * 4/3);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const preview = $("previewCanvas");
+    preview.style.width = dispW + "px";
+    preview.style.height = dispH + "px";
+    preview.width = Math.round(dispW * dpr);
+    preview.height = Math.round(dispH * dpr);
+    const pctx = preview.getContext("2d", { colorSpace: "srgb" });
+    pctx.imageSmoothingEnabled = true;
+    pctx.imageSmoothingQuality = "high";
+    pctx.drawImage(shot.fullCanvas, shot.cropVideo.x, shot.cropVideo.y, shot.cropVideo.w, shot.cropVideo.h, 0, 0, preview.width, preview.height);
+    const outW = Math.max(CFG.MIN_W, Math.min(CFG.MAX_W, shot.cropVideo.w));
+    const outH = Math.round(outW * 4/3);
+    $("previewMeta").textContent = `Output ${outW} × ${outH}  ·  3:4  ·  taken ${shot.timestamp.toLocaleTimeString()}`;
+    $("previewStatus").textContent = "";
+    $("previewStatus").className = "modal-status";
+    $("modalSaveBtn").disabled = false;
+    $("modalSaveBtn").textContent = "Save photo";
+    $("previewModal").hidden = false;
+  }
+
+  function closePreview() {
+    $("previewModal").hidden = true;
+    state.previewShot = null;
+  }
+
+  function discardCurrentShot() {
+    const shot = state.previewShot;
+    if (!shot) return;
+    state.gallery = state.gallery.filter((s) => s.id !== shot.id);
+    renderGallery();
+    closePreview();
+  }
+
+  // ===== 9. Encoding =====
+  function scheduleSizeEstimate() {
+    if (state.encodeInFlight) return;
+    if (!state.lastAnalysis || !state.lastAnalysis.cropRect) return;
+    state.encodeInFlight = true;
+    setTimeout(async () => {
+      try {
+        const cropVideo = {
+          x: Math.round(state.lastAnalysis.cropRect.x * state.lastAnalysis.videoW / state.lastAnalysis.workW),
+          y: Math.round(state.lastAnalysis.cropRect.y * state.lastAnalysis.videoH / state.lastAnalysis.workH),
+          w: Math.round(state.lastAnalysis.cropRect.w * state.lastAnalysis.videoW / state.lastAnalysis.workW),
+          h: Math.round(state.lastAnalysis.cropRect.h * state.lastAnalysis.videoH / state.lastAnalysis.workH),
+        };
+        const outW = Math.max(CFG.MIN_W, Math.min(CFG.MAX_W, cropVideo.w));
+        const outH = Math.round(outW * 4/3);
+        if (cropVideo.w < CFG.MIN_W) { state.lastEstBytes = null; return; }
+        // Render at 0.82 quality just to estimate — one shot, not full search
+        const video = $("video");
+        if (!video.videoWidth) return;
+        const off = document.createElement("canvas");
+        off.width = outW; off.height = outH;
+        const octx = off.getContext("2d", { colorSpace: "srgb" });
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = "high";
+        octx.drawImage(video, cropVideo.x, cropVideo.y, cropVideo.w, cropVideo.h, 0, 0, outW, outH);
+        const blob = await toBlobP(off, 0.82);
+        state.lastEstBytes = blob.size;
+      } catch (_) {
+        state.lastEstBytes = null;
+      } finally {
+        state.encodeInFlight = false;
+      }
+    }, 20);
+  }
+
+  function toBlobP(canvas, q) {
+    return new Promise((res, rej) => {
+      canvas.toBlob((b) => b ? res(b) : rej(new Error("encode failed")), "image/jpeg", q);
+    });
+  }
+
+  async function encodeInRange(sourceCanvas, cropVideo, outW, outH) {
+    let best = await encodeAtSize(sourceCanvas, cropVideo, outW, outH);
+    if (inSizeRange(best.size)) return best;
+    // If even at Q_HI we're below the floor, resize larger and retry. This is a
+    // bilinear upscale of the same cropped pixels — no colour/brightness edits.
+    if (best.size < CFG.MIN_BYTES) {
+      for (const w of CFG.UPSCALE_TARGETS) {
+        if (w <= outW || w > CFG.MAX_W) continue;
+        const h = Math.round(w * 4 / 3);
+        const attempt = await encodeAtSize(sourceCanvas, cropVideo, w, h);
+        if (inSizeRange(attempt.size)) return attempt;
+        // Take whichever attempt is closest to being in-range
+        if (Math.abs(attempt.size - CFG.MIN_BYTES) < Math.abs(best.size - CFG.MIN_BYTES)) {
+          best = attempt;
+        }
+        if (attempt.size >= CFG.MIN_BYTES) break;
+      }
+    }
+    return best;
+  }
+
+  function inSizeRange(size) {
+    return size >= CFG.MIN_BYTES && size <= CFG.MAX_BYTES;
+  }
+
+  async function encodeAtSize(sourceCanvas, cropVideo, outW, outH) {
+    const off = document.createElement("canvas");
+    off.width = outW; off.height = outH;
+    const octx = off.getContext("2d", { colorSpace: "srgb" });
+    octx.imageSmoothingEnabled = true;
+    octx.imageSmoothingQuality = "high";
+    octx.drawImage(sourceCanvas, cropVideo.x, cropVideo.y, cropVideo.w, cropVideo.h, 0, 0, outW, outH);
+    // Quick check at Q_HI first — if already too small, no search will help.
+    const hiBlob = await toBlobP(off, CFG.Q_HI);
+    if (hiBlob.size < CFG.MIN_BYTES) {
+      return { blob: hiBlob, q: CFG.Q_HI, size: hiBlob.size, outW, outH };
+    }
+    if (hiBlob.size <= CFG.MAX_BYTES) {
+      return { blob: hiBlob, q: CFG.Q_HI, size: hiBlob.size, outW, outH };
+    }
+    // Overshoot at Q_HI — binary-search downward for a q that lands in range.
+    let lo = CFG.Q_LO, hi = CFG.Q_HI;
+    let best = { blob: hiBlob, q: CFG.Q_HI, size: hiBlob.size, outW, outH };
+    let bestScore = Math.abs(hiBlob.size - CFG.MAX_BYTES);
+    for (let i = 0; i < 5; i++) {
+      const q = (lo + hi) / 2;
+      const blob = await toBlobP(off, q);
+      const size = blob.size;
+      const mid = (CFG.MIN_BYTES + CFG.MAX_BYTES) / 2;
+      const score = inSizeRange(size) ? Math.abs(size - mid) : Math.abs(size - CFG.MAX_BYTES) + 1e10;
+      if (score < bestScore) { bestScore = score; best = { blob, q, size, outW, outH }; }
+      if (inSizeRange(size)) return best;
+      if (size > CFG.MAX_BYTES) hi = q; else lo = q;
+    }
+    return best;
+  }
+
+  async function saveOutput() {
+    const shot = state.previewShot;
+    if (!shot) return;
+    const saveBtn = $("modalSaveBtn");
+    const statusEl = $("previewStatus");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Encoding…";
+    statusEl.className = "modal-status info";
+    statusEl.textContent = "Encoding JPEG…";
+    try {
+      const cropVideo = shot.cropVideo;
+      const outW = Math.max(CFG.MIN_W, Math.min(CFG.MAX_W, cropVideo.w));
+      const outH = Math.round(outW * 4/3);
+      let result = await encodeInRange(shot.fullCanvas, cropVideo, outW, outH);
+      if (!result) throw new Error("Encoder returned nothing.");
+      // Above ceiling — cannot save.
+      if (result.size > CFG.MAX_BYTES) {
+        statusEl.className = "modal-status bad";
+        statusEl.textContent = `Encoded ${formatBytes(result.size)} — above 3.14 MB. Reduce crop.`;
+        saveBtn.disabled = false; saveBtn.textContent = "Save photo";
+        return;
+      }
+      // Below floor — pad the JPEG file with COM (comment) segments to hit the
+      // 512 KB minimum. Metadata bytes only; no pixel data is added or altered.
+      if (result.size < CFG.MIN_BYTES) {
+        const padded = await padJpegToMinSize(result.blob, CFG.MIN_BYTES + 4096);
+        result = { ...result, blob: padded, size: padded.size, padded: true };
+      }
+      const iso = shot.timestamp.toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const filename = `inz-visa-photo-${iso}.jpg`;
+      downloadBlob(result.blob, filename);
+      const paddedNote = result.padded ? " (padded to hit 512 KB floor)" : "";
+      statusEl.className = "modal-status info";
+      statusEl.textContent = `Saved ${filename} — ${result.outW}×${result.outH}, ${formatBytes(result.size)}${paddedNote}.`;
+      saveBtn.textContent = "Saved ✓";
+      state.lastEstBytes = result.size;
+    } catch (err) {
+      statusEl.className = "modal-status bad";
+      statusEl.textContent = "Save failed: " + (err && err.message || err);
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save photo";
+    }
+  }
+
+  // Insert JPEG COM (0xFF 0xFE) segments right after the SOI marker until the
+  // file is at least targetBytes. Padding sits in metadata; the compressed image
+  // stream is byte-for-byte unchanged. Every JPEG decoder ignores COM data.
+  async function padJpegToMinSize(blob, targetBytes) {
+    const arr = new Uint8Array(await blob.arrayBuffer());
+    if (arr.length >= targetBytes) return blob;
+    if (arr[0] !== 0xFF || arr[1] !== 0xD8) return blob;  // not a JPEG
+    const need = targetBytes - arr.length;
+    const MAX_PAYLOAD = 65533;                // largest COM data body
+    const parts = [ arr.subarray(0, 2) ];     // keep SOI at the top
+    let remaining = need;
+    while (remaining > 0) {
+      const payload = Math.min(remaining - 4, MAX_PAYLOAD);
+      if (payload <= 0) break;
+      const segLenField = payload + 2;
+      const seg = new Uint8Array(4 + payload);
+      seg[0] = 0xFF; seg[1] = 0xFE;
+      seg[2] = (segLenField >> 8) & 0xFF;
+      seg[3] = segLenField & 0xFF;
+      // Zero-filled payload — decoders skip past the length field to the next marker.
+      parts.push(seg);
+      remaining -= (4 + payload);
+    }
+    parts.push(arr.subarray(2));  // rest of the file after SOI
+    return new Blob(parts, { type: "image/jpeg" });
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  }
+
+  function showStatus(msg, kind) {
+    const el = $("status");
+    el.classList.remove("bad", "ok", "info", "show");
+    if (!msg) return;
+    el.classList.add("show", kind || "info");
+    el.textContent = msg;
+  }
+})();
+</script>
