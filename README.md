@@ -6,7 +6,7 @@ Live at https://nored.github.io/nz-visa-photo-app/
 
 ## Why this exists
 
-In Germany, passport photos are now taken at the Bürgeramt on their own equipment. The file they produce targets the German biometric ID, not INZ's 3:4 JPEG between 512 KB and 3.14 MB. Photographers who still shoot the INZ spec are hard to find. This app captures straight from a webcam under the INZ rules.
+Germany moved biometric passport photos into the Bürgeramt, the citizen office, to close off AI-edited and tampered submissions. That service only runs as part of a passport or ID card application; you cannot walk in for a standalone biometric photo. Since the shift the shopping-centre photo automats and the photographers who specialised in biometric photos have closed, so booking a compliant shot for a foreign visa is now hard. Consumer photo apps almost all apply AI processing to the image, which INZ does not accept. This app captures straight from a webcam under the INZ rules and never touches pixel values.
 
 ## INZ spec this targets
 
